@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load static %}
+{% block title %}Fix a Panel{% endblock %}
+{% block jsext %}
+
+<style type="text/css">
+  .barbie-page-thumb {
+    display: inline-block;
+    width: 150px;
+  }
+
+  .page-thumb {
+    width: 100%;
+    border: 2px solid #eee;
+  }
+
+  #page_image {
+    width: 100%;
+  }
+
+  #barbie-page-holder {
+    overflow-x: scroll; 
+    white-space: nowrap;
+    background-color: white;
+    padding: 10px;
+  }
+
+  #spacer {
+    height: 30px;
+  }
+
+  #pictureCell {
+    width: 605px;
+    background-color: white;
+  }
+
+  #textCell {
+    padding-left: 20px;
+    vertical-align: top;
+  }
+
+  #instructionsToShare {
+    display: none;
+  }
+
+</style>
+
+<script type="text/javascript">
+
+
+var pages = {{pages_json|safe}};
+
+var current_barbie_pic = null;
+
+var to_save_page_id = null;
+var to_save_text = null;
+
+$(document).ready(function(){
+
+    makeNewBarbieCanvas(pages[{{random_page_id}}]);
+
+
+    $("#new_text").keyup(liveUpdateText);
+    $("#new_text").change(liveUpdateText);
+    $("#font_size").change(liveUpdateText);
+
+
+});
+
+function chooseImage(i){
+    makeNewBarbieCanvas(pages[i]);
+}
+
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+  var words = text.split(' ');
+  var line = '';
+
+  for(var n = 0; n < words.length; n++) {
+    var testLine = line + words[n] + ' ';
+    var metrics = context.measureText(testLine);
+    var testWidth = metrics.width;
+    if (testWidth > maxWidth && n > 0) {
+      context.fillText(line, x, y);
+      line = words[n] + ' ';
+      y += lineHeight;
+    }
+    else {
+      line = testLine;
+    }
+  }
+  context.fillText(line, x, y);
+} 
+
+function makeNewBarbieCanvas(barbie_pic){
+
+    current_barbie_pic = barbie_pic;
+
+    $("#instructionsToShare").hide();
+    $("#pictureCell").empty();
+    var new_canvas = $('<canvas id="theCanvas" width="' + barbie_pic.width + 'px" height="' + barbie_pic.height + 'px"></canvas>');
+
+    $("#pictureCell").append(new_canvas);
+    $("#pictureCell").css("width", barbie_pic.width);
+
+    drawBarbiePicOriginal(barbie_pic);
+
+    //drawBarbiePicAndText(barbie_pic, barbie_pic.original_text, 12);
+
+    //$("#new_text").attr("placeholder", barbie_pic.original_text);
+    $("#new_text").val(barbie_pic.original_text);
+}
+
+function drawBarbiePicAndText(barbie_pic, text, font_size){
+
+    var canvas = document.getElementById("theCanvas");
+    var ctx = canvas.getContext("2d");
+    var imageObj = new Image();
+
+    imageObj.onload = function(){
+        ctx.drawImage(imageObj, 0, 0, barbie_pic.width, barbie_pic.height);
+
+        drawTextOnCanvas(ctx, barbie_pic.text_x, barbie_pic.text_y, barbie_pic.text_w, barbie_pic.text_h, font_size, text);
+
+        var dataEncode =  canvas.toDataURL("image/png");
+        $("#linkToStory").attr("href", dataEncode);
+
+   };
+
+   imageObj.src = "{% get_static_prefix %}img/" + barbie_pic.image_path + "_blank.png";
+
+}
+
+function liveUpdateText(){
+   setTimeout('changeStory()', 0);
+}
+
+function drawBarbiePicOriginal(barbie_pic){
+
+    var canvas = document.getElementById("theCanvas");
+    var ctx = canvas.getContext("2d");
+    var imageObj = new Image();
+
+    imageObj.onload = function(){
+        ctx.drawImage(imageObj, 0, 0, barbie_pic.width, barbie_pic.height);
+
+   };
+
+   imageObj.src = "{% get_static_prefix %}img/" + barbie_pic.image_path + ".png";
+}
+
+function drawTextOnCanvas(ctx, x, y, w, h, font_size, text){
+    
+    /*
+    ctx.fillStyle = "#fff";
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 30;
+    ctx.fillRect(x, y, w, h);
+
+    ctx.shadowBlur = 0;
+    */
+    ctx.fillStyle = "#000";
+
+    font_size = font_size|0;
+    var line_size = font_size*1.5;
+    ctx.font = (font_size + "pt Times");
+
+
+    wrapText(ctx, text, x + 5, y + font_size + 5, w - 10, line_size);
+}
+
+function changeStory(){
+    var new_text = $("#new_text").val();
+
+    if (new_text.length > 0){
+        var font_size = $("#font_size").val();
+        drawBarbiePicAndText(current_barbie_pic, new_text, font_size);
+
+        to_save_page_id = current_barbie_pic.id;
+        to_save_text = new_text;
+
+        $("#linkToStory").removeAttr("disabled");
+        $("#saveStoryButton").removeAttr("disabled");
+
+        $("#instructionsToShare").fadeIn();
+    }
+    else {
+        //alert("Enter a new story for Barbie");
+    }
+
+}
+
+function openStoryImage(){
+    var canvas = document.getElementById("theCanvas");
+    var dataEncode = canvas.toDataURL("image/png");
+    window.open(
+      dataEncode,
+      '_blank'
+    );
+}
+
+{% if not prevent_uploads %}
+function saveStory(){
+    $("#saveStoryButton").attr("disabled", "disabled");
+    imgurUpload();
+}
+
+
+var clientId = "{{imgur_client_id}}";
+
+function imgurUpload() {
+    console.log("imgur upload");
+
+    var canvas = document.getElementById("theCanvas");
+    var dataEncode = canvas.toDataURL("image/png").replace("data:image/png;base64,", "");
+    
+    
+    var auth = 'Client-ID ' + clientId;
+
+    $.ajax({
+        url: 'https://api.imgur.com/3/image',
+        type: 'POST',
+        headers: {
+            Authorization: auth,
+            Accept: 'application/json'
+        },
+        data: {
+            image: dataEncode,
+            type: 'base64',
+            title: 'Computer Engineer Barbie',
+            description: to_save_text,
+        },
+        success: function(result) {
+            var imgur_id = result.data.id;
+
+            saveStoryToDb(imgur_id, to_save_page_id, to_save_text);
+        }
+    });
+
+}
+
+function saveStoryToDb(imgur_id, page_id, new_text){
+    $.ajax({
+        url: '{% url "save_page" %}',
+        type: 'POST',
+        data: {
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+            imgur_id: imgur_id,
+            page_id: page_id,
+            new_text: new_text
+        },
+        success: function(result) {
+            window.location = result.redirect;
+        }
+    });
+}
+{% endif %}
+
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+<h3>Choose a page from Barbie's book:</h3>
+<hr />
+<div id='barbie-page-holder'>
+  {% for p in pages %}
+    <div class='barbie-page-thumb'>
+      <a href="#" onclick="chooseImage('{{p.id}}')">
+
+        <img src="{% get_static_prefix %}img/{{p.image_path}}.png" class="page-thumb" />
+      </a>
+    </div>
+  {% endfor %}
+</div>
+
+<div id="spacer"></div>
+
+
+<div class="row">
+  <div class="col-lg-12">
+    <table style="width:100%;">
+      <tr>
+        <td id="pictureCell">
+          
+        </td>
+        <td id="textCell">
+          <h3>What should the story be instead?</h3>
+          <textarea id="new_text" rows=7 style="width: 100%;"></textarea>
+
+          <p>
+            <h4>Font size:</h4>
+            <select id="font_size">
+              <option value="8">8pt</option>
+              <option value="10">10pt</option>
+              <option value="12">12pt</option>
+              <option value="14">14pt</option>
+              <option value="16" selected="selected">16pt</option>
+              <option value="20">20pt</option>
+              <option value="28">28pt</option>
+              <option value="36">36pt</option>
+              <option value="48">48pt</option>
+            </select>
+          </p>
+          <hr />
+          <div id="instructionsToShare">
+            {% if prevent_uploads %}
+            <h5>Uploading is currently turned <i>off</i>. You can still make your #feministhackerbarbie image, but you'll have to host and share it yourself for now. </h5>
+            <div id="saveStoryButton" onclick="openStoryImage()" class="btn btn-lg btn-warning"> <span class="glyphicon glyphicon-link"></span>&nbsp;View Your Image</div>
+            {% else %}
+            <h5>If you want others to see your story, <i>save and share</i> it!</h5>
+            <div id="saveStoryButton" onclick="saveStory()" class="btn btn-lg btn-info"> <span class="glyphicon glyphicon-share"></span>&nbsp;Save and Share Story</div>
+            {% endif %}
+          </div>
+
+          <p>
+            <h3 id="thanks" style="display: none;">Thanks!! <a href="{% url 'index' %}">Browse more Barbie Book improvements!</a></h3>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div id="spacer"></div>
+
+
+{% endblock %}
+

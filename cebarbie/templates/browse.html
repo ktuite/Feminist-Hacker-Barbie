@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Feminist Hacker Barbie{% endblock %}
+{% block jsext %}
+
+<meta property="og:title" content="Feminist Hacker Barbie" />
+<meta property="og:description" content="Barbie's new book tells girls they need boys to code for them. Help Barbie be the competent, independent, bad-ass engineer that she wants to be." /> 
+<meta property="og:image" content="https://computer-engineer-barbie.herokuapp.com/static/img/screenshot.png" /> 
+
+<style type="text/css">
+  .barbiethumb {
+    max-width: 100%;
+    max-height: 100%;
+    border: 2px solid #eee;
+  }
+  .thumb-holder {
+    max-height: 200px;
+    max-width: 200px;
+    display: inline-block;
+    padding: 5px;
+  }
+</style>
+
+
+{% endblock %}
+
+{% block content %}
+<div>
+  <h3><a href="{% url 'browse' %}">User-Submitted Improvements</a></h3>
+  {% for a in adaptations %}
+    <div class="thumb-holder">
+      <a href="{% url 'view_panel' a.id %}"><img class="barbiethumb" src="https://i.imgur.com/{{a.imgur_id}}.png" alt="{{a.new_text}}" title="{{a.new_text}}"></a><br/>
+      {{a.new_text|truncatechars:30}}
+    </div>
+  {% endfor %}
+
+  <hr/>
+  {% if adaptations.has_next %}
+    <a href="?page={{ adaptations.next_page_number}}">more</a>
+    <br/>&nbsp;
+  {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Feminist Hacker Barbie #{{panel.id}}{% endblock %}
+{% block jsext %}
+
+<meta property="og:title" content="Feminist Hacker Barbie #{{panel.id}}" />
+<meta property="og:description" content="{{panel.new_text}}" /> 
+<meta property="og:image" content="https://i.imgur.com/{{panel.imgur_id}}.png" /> 
+
+<style type="text/css">
+  .barbiethumb {
+    max-height: 200px;
+    max-width: 200px;
+    border: 2px solid #eee;
+  }
+
+  #transcription {
+    margin-top: 30px;
+  }
+</style>
+
+
+
+<script type="text/javascript">
+{% if user.is_staff %}
+  function toggleEndorsement(e){
+    $.post('{% url "endorse" %}', 
+        {
+          adaptation_id: {{panel.id}},
+          endorsement: e, 
+          csrfmiddlewaretoken: '{{ csrf_token }}',         
+        },
+        function(){
+          location.reload();
+        });
+  } 
+
+  function deletePanel(id){
+    var r = confirm("Are you sure you want to delete #{{panel.id}}?");
+    if (r == true) {
+      $.post('{% url "delete" %}', 
+        {
+          adaptation_id: {{panel.id}},
+          csrfmiddlewaretoken: '{{ csrf_token }}',         
+        },
+        function(){
+          window.location = "{% url 'view_panel' prev %}";
+        });
+    }
+  }
+{% endif %}
+
+  function flag(){
+    var r = confirm("Are you sure you want to flag #{{panel.id}} as inappropriate?");
+    if (r == true) {
+      $.post('{% url "flag" %}', 
+        {
+          adaptation_id: {{panel.id}},
+          csrfmiddlewaretoken: '{{ csrf_token }}',         
+        },
+        function(){
+          window.location = "{% url 'view_panel' prev %}";
+        });
+    }
+  }
+
+
+$(document).ready(function(){
+    $("body").keydown(function(e){
+        // left arrow
+        if ((e.keyCode || e.which) == 37) {   
+            window.location = "{% url 'view_panel' prev %}";
+        }
+        // right arrow
+        if ((e.keyCode || e.which) == 39) {
+            window.location = "{% url 'view_panel' next %}";
+        }
+
+        {% if user.is_staff %}
+        // e
+        if ((e.keyCode || e.which) == 69) {
+            toggleEndorsement({{panel.endorsed|yesno:"false,true"}});
+        }   
+
+        // x
+        if ((e.keyCode || e.which) == 88) {
+          deletePanel({{panel.id}});
+        }    
+        {% endif %}
+    });
+});
+</script>
+
+
+{% endblock %}
+
+{% block content %}
+
+<div class="col-lg-12 text-center">
+  <img src="https://i.imgur.com/{{panel.imgur_id}}.png" alt="{{panel.new_text}}"
+   title="{{panel.new_text}}" />
+
+    <p>
+      <a href="#" onclick="flag()">flag as inappropriate</a>
+    </p>
+
+  <a href="{% url 'new_panel' %}" class="btn btn-primary btn-lg">Create your own!</a>
+
+
+  {% if user.is_staff %}
+    <p>
+      <div class="btn btn-info" onclick="toggleEndorsement({{panel.endorsed|yesno:"false,true"}})"><span class="glyphicon glyphicon-star{% if not panel.endorsed %}-empty{% endif %}"></span></div>
+
+      <div class="btn btn-danger" onclick="deletePanel({{panel.id}})"><span class="glyphicon glyphicon-remove"></span></div>
+    </p>
+  {% endif %}
+
+    <pre id="transcription">
+      {{panel.new_text}}
+    </pre>
+
+</div>
+
+
+{% endblock %}
+

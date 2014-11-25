@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% block title %}Feminist Hacker Barbie{% endblock %}
+{% block jsext %}
+
+<meta property="og:title" content="Feminist Hacker Barbie" />
+<meta property="og:description" content="Barbie's new book tells girls they need boys to code for them. Help Barbie be the competent, independent, bad-ass engineer that she wants to be." />  
+
+<style type="text/css">
+  .barbiethumb {
+    max-height: 200px;
+    max-width: 200px;
+    border: 2px solid #eee;
+  }
+</style>
+
+
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron" style="background: white;">
+  <div class="container">
+  <div class="col-lg-6">
+    <img src="{% static "img/barbie-at-kitchen-table.png" %}" style="width:100%;" />
+  </div>
+  <div class="col-lg-6">
+    <h2>Help make Computer Engineer Barbie better!</h2>
+    <p>Barbie's new book <b><a href="http://www.dailydot.com/geek/barbie-engineer-book-girls-game-developers/">tells girls they need boys to code for them</a></b>. 
+    </p>
+    <p>
+      Help Barbie be the competent, independent, bad-ass engineer that she wants to be.
+    </p>
+    <p>
+      Check out <a href="http://caseyfiesler.com/2014/11/18/barbie-remixed-i-really-can-be-a-computer-engineer/">Casey Fiesler's</a>, <a href="https://storify.com/Spacekatgal/compu">@Spacekatgal's</a> and <a href="https://twitter.com/SwiftOnSecurity/status/534579596880916482">InfoSec Taylor Swift's</a> adaptations for inspiration!
+    <p><a href="{% url 'new_panel' %}" class="btn btn-primary btn-lg">Fix a page in Barbie's book &raquo;</a></p>
+  </div></div>
+</div>
+
+
+<div class="page-header">
+  <h3><a href="{% url "browse" %}">User-Submitted Improvements</a></h3>
+  {% for a in adaptations %}
+    <a href="{% url 'view_panel' a.id %}"><img class="barbiethumb" src="https://i.imgur.com/{{a.imgur_id}}.png" alt="{{a.new_text}}" title="{{a.new_text}}"></a>
+  {% endfor %}
+</div>
+
+{% endblock %}
+
